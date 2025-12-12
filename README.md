@@ -1,6 +1,6 @@
-````md
+
 <p align="center">
-  <im![Laundry_Lens.png](Laundry_Lens.png)g src="Laundry_Lens.png" alt="Laundry Lens Banner" width="1200">
+  <img src="Laundry_Lens.png" alt="Laundry Lens Banner" width="1200">
 </p>
 
 # 🧺 Laundry Lens
