@@ -1,7 +1,5 @@
 ````md
-<p align="center">
-  <img src="Laundry_Lens.png" alt="Laundry Lens Banner" width="1200">
-</p>
+![Laundry_Lens.png](Laundry_Lens.png)
 
 # 🧺 Laundry Lens
 ### Smart Laundry Management App for Dormitories
