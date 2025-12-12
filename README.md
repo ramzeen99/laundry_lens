@@ -228,9 +228,7 @@ Pull Request’ы приветствуются.
 
 MIT License.
 
-```
 
----
 
 # 📥 Downloads (Coming Soon)
 
@@ -244,7 +242,7 @@ MIT License.
 
 > 🚧 **Download section reserved** — Badges will be added once the app is published.
 
----
+
 
 # 🎨 Improved Banner Design (Reserved)
 
@@ -295,5 +293,5 @@ Below is the reserved multilingual structure for the *How it Works* section.
 > - Как проходит авторизация пользователя  
 > - Как работает система общежития  
 
----
+
 
