@@ -1,7 +1,18 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:laundry_lens/data/donnees.dart';
 import 'package:firebase_core/firebase_core.dart';
+Future<void> syncMachinesToFirebase() async {
+  final firestore = FirebaseFirestore.instance;
 
+  for (var machine in DonneesExemple.machines) {
+    await firestore.collection('machines').doc(machine.id).set({
+      'id': machine.id,
+      'nom': machine.nom,
+      'emplacement': machine.emplacement,
+      'statut': machine.statut.name,
+    });
+  }
+}
 class FirebaseService {
   static bool _isInitialized = false;
 
@@ -13,6 +24,7 @@ class FirebaseService {
       _isInitialized = true;
     }
   }
+
 
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
@@ -38,6 +50,7 @@ class FirebaseService {
       'lastUpdate': FieldValue.serverTimestamp(),
     });
   }
+
 
   // Créer une machine (pour l'initialisation)
   // Создать машину (для инициализации)
@@ -65,7 +78,7 @@ class FirebaseService {
       for (final machine in DonneesExemple.machines) {
         await machinesCollection.doc(machine.id).set(machine.toMap());
       }
-      print('✅ Данные инициализированы из donnees_exemple.dart');
+      //print('✅ Данные инициализированы из donnees_exemple.dart');
     }
   }
 
@@ -73,24 +86,24 @@ class FirebaseService {
   // Добавьте этот метод в firebase_service.dart
   static Future<void> diagnoseFirebase() async {
     try {
-      print('🔍 ДИАГНОСТИКА FIREBASE...');
+      //print('🔍 ДИАГНОСТИКА FIREBASE...');
 
       final snapshot = await machinesCollection.get();
-      print('📊 Количество документов в Firestore: ${snapshot.docs.length}');
+      //print('📊 Количество документов в Firestore: ${snapshot.docs.length}');
 
-      for (final doc in snapshot.docs) {
-        print('📄 Документ: ${doc.id}');
-        print('   Данные: ${doc.data()}');
-      }
+      /*for (final doc in snapshot.docs) {
+       // print('📄 Документ: ${doc.id}');
+       // print('   Данные: ${doc.data()}');
+      }*/
 
       if (snapshot.docs.isEmpty) {
-        print('❌ Нет данных в Firestore');
+        //print('❌ Нет данных в Firestore');
         await initializeTestData();
       } else {
-        print('✅ Данные присутствуют в Firestore');
+       // print('✅ Данные присутствуют в Firestore');
       }
     } catch (e) {
-      print('❌ Ошибка диагностики: $e');
+      //print('❌ Ошибка диагностики: $e');
     }
   }
 }

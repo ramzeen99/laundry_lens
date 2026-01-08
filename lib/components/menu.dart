@@ -11,15 +11,14 @@ extension MenuActionExtension on MenuAction {
   // FR : Texte affiché pour chaque option du menu (UI → traduit en russe)
   // RU : Текст, отображаемый для каждого пункта меню (интерфейс → на русском)
   String get label {
-    switch (this) {
-      case MenuAction.parametres:
-        return 'Настройки'; // FR : Paramètres
-      case MenuAction.profil:
-        return 'Профиль'; // FR : Profil
-      case MenuAction.aide:
-        return 'Помощь'; // FR : Aide
-      default:
-        return '';
+    if (this case MenuAction.parametres) {
+      return 'Настройки';
+    } else if (this case MenuAction.profil) {
+      return 'Профиль';
+    } else if (this case MenuAction.aide) {
+      return 'Помощь';
+    } else {
+      return '';
     }
   }
 
@@ -33,6 +32,7 @@ extension MenuActionExtension on MenuAction {
         return Icons.person;
       case MenuAction.aide:
         return Icons.help;
+      // ignore: unreachable_switch_default
       default:
         return Icons.info;
     }

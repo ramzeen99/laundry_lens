@@ -19,6 +19,7 @@ class _ResetWithCodePageState extends State<ResetWithCodePage> {
   bool showSpinner = false;
 
   Future<void> _resetPassword() async {
+    final navigator = Navigator.of(context);
     if (code.isEmpty) {
       setState(() => errorMessage = 'Введите код, полученный по электронной почте');
       return;
@@ -51,7 +52,7 @@ class _ResetWithCodePageState extends State<ResetWithCodePage> {
         });
 
         Future.delayed(Duration(seconds: 2), () {
-          Navigator.popUntil(context, (route) => route.isFirst);
+          navigator.popUntil( (route) => route.isFirst);
         });
       } else {
         setState(() => errorMessage = 'Пожалуйста, войдите снова');

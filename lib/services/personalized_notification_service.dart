@@ -60,7 +60,7 @@ class PersonalizedNotificationService {
     // 🎯 Проверить, нужно ли отправлять
     // 🎯 Vérifier si on doit envoyer
     if (!_shouldSendNotification(machine, currentUser, type)) {
-      print('🔕 Уведомление отфильтровано для ${machine.nom}');
+      //print('🔕 Уведомление отфильтровано для ${machine.nom}');
       // 🔕 Notification filtrée pour ${machine.nom}
       return;
     }
@@ -162,7 +162,7 @@ class PersonalizedNotificationService {
     // Использовать user?.fcmToken для отправки конкретному пользователю
     // Utiliser le user?.fcmToken pour envoyer à un utilisateur spécifique
 
-    print('''
+   /* print('''
     📲 Персонализированное push-уведомление:
     // 📲 Push notification personnalisée:
     Заголовок: ${notification.title}
@@ -173,7 +173,7 @@ class PersonalizedNotificationService {
     // Utilisateur: ${user?.email ?? 'Tous'}
     Тип: ${notification.type}
     // Type: ${notification.type}
-    ''');
+    ''');*/
   }
 
   // 🎯 Утилитарный метод для отправки тестового уведомления
@@ -201,21 +201,21 @@ class PersonalizedNotificationService {
 
   // 🏠 Фильтровать по любимой комнате (на будущее)
   // 🏠 Filtrer par pièce favorite (pour plus tard)
-  static bool _isFavoriteRoom(AppUser user, String room) {
+  /*static bool _isFavoriteRoom(AppUser user, String room) {
     // 🎯 Реализовать, когда будет система настроек
     // 🎯 À implémenter quand tu auras le système de préférences
     // Пока все комнаты "любимые"
     // Pour l'instant, toutes les pièces sont "favorites"
     return true;
-  }
+  }*/
 
   // 🔔 Проверить настройки уведомлений пользователя (на будущее)
   // 🔔 Vérifier les paramètres de notification utilisateur (pour plus tard)
-  static bool _isNotificationTypeEnabled(AppUser user, NotificationType type) {
+  /*static bool _isNotificationTypeEnabled(AppUser user, NotificationType type) {
     // 🎯 Реализовать с вашим PreferencesProvider
     // 🎯 À implémenter avec ton PreferencesProvider
     // Пока все типы включены
     // Pour l'instant, tous les types sont activés
     return true;
-  }
+  }*/
 }

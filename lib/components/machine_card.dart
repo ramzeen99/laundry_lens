@@ -1,7 +1,7 @@
-import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:laundry_lens/model/model.dart';
 import 'package:laundry_lens/providers/user_provider.dart';
+import 'package:flutter/material.dart';
 
 // FR : Carte affichant une machine avec ses informations
 // RU : Карточка стиральной машины с подробной информацией

@@ -10,8 +10,12 @@ class Machine {
   final String emplacement;
   final MachineStatus statut;
   final int? tempsRestant;
+  final int? heatLeft;
   final String? utilisateurActuel;
   final Timestamp? lastUpdate;
+
+  // Nouveau champ pour filtrer selon le dortoir / New field for dorm filtering
+  final String? dormPath;
 
   Machine({
     required this.id,
@@ -19,10 +23,28 @@ class Machine {
     required this.emplacement,
     required this.statut,
     this.tempsRestant,
+    this.heatLeft,
     this.utilisateurActuel,
     this.lastUpdate,
+    this.dormPath,
   });
-
+  Machine copyWith({
+    String? id,
+    String? nom,
+    String? emplacement,
+    MachineStatus? statut,
+    int? tempsRestant,
+    String? utilisateurActuel,
+  }) {
+    return Machine(
+      id: id ?? this.id,
+      nom: nom ?? this.nom,
+      emplacement: emplacement ?? this.emplacement,
+      statut: statut ?? this.statut,
+      tempsRestant: tempsRestant ?? this.tempsRestant,
+      utilisateurActuel: utilisateurActuel ?? this.utilisateurActuel,
+    );
+  }
   // FR : Convertir l'objet Machine en Map (pour Firebase)
   // RU : Преобразование объекта Machine в карту (для Firebase)
   Map<String, dynamic> toMap() {
@@ -30,10 +52,11 @@ class Machine {
       'id': id,
       'nom': nom,
       'emplacement': emplacement,
-      'statut': _statusToString(statut), // FR : Conversion du statut en texte
-      // RU : Преобразование статуса в текст
+      'statut': _statusToString(statut),
       'tempsRestant': tempsRestant,
       'utilisateurActuel': utilisateurActuel,
+      'heatLeft': heatLeft,
+      'dormPath': dormPath,
       //'lastUpdate': FieldValue.serverTimestamp(),
     };
   }
@@ -41,7 +64,6 @@ class Machine {
   // FR : Créer une instance Machine à partir des données Firebase
   // RU : Создание экземпляра Machine из данных Firebase
   factory Machine.fromFirebase(Map<String, dynamic> data) {
-    print('🔄 Mapping Firebase data: $data');
     return Machine(
       id: data['id'] ?? '',
       nom: data['nom'] ?? '',
@@ -49,7 +71,9 @@ class Machine {
       statut: _parseStatus(data['statut']),
       tempsRestant: data['tempsRestant'],
       utilisateurActuel: data['utilisateurActuel'],
+      heatLeft: data['heatLeft'],
       lastUpdate: data['lastUpdate'],
+      dormPath: data['dormPath'],
     );
   }
 
@@ -73,11 +97,11 @@ class Machine {
   static String _statusToString(MachineStatus status) {
     switch (status) {
       case MachineStatus.libre:
-        return 'libre';     // RU : свободна
+        return 'libre';
       case MachineStatus.occupe:
-        return 'occupe';    // RU : занята
+        return 'occupe';
       case MachineStatus.termine:
-        return 'termine';   // RU : завершено
+        return 'termine';
     }
   }
 
@@ -86,11 +110,11 @@ class Machine {
   String get emojiStatut {
     switch (statut) {
       case MachineStatus.libre:
-        return '🟢'; // RU : свободна
+        return '🟢';
       case MachineStatus.occupe:
-        return '🔴'; // RU : занята
+        return '🔴';
       case MachineStatus.termine:
-        return '🟠'; // RU : завершено
+        return '🟠';
     }
   }
 
@@ -99,18 +123,18 @@ class Machine {
   String get texteStatut {
     switch (statut) {
       case MachineStatus.libre:
-        return 'СВОБОДНА'; // FR : LIBRE
+        return 'СВОБОДНА';
       case MachineStatus.occupe:
-        return 'ЗАНЯТА'; // FR : OCCUPÉ
+        return 'ЗАНЯТА';
       case MachineStatus.termine:
-        return 'ЗАВЕРШЕНО'; // FR : TERMINÉ
+        return 'ЗАВЕРШЕНО';
     }
   }
 
   // FR : Formatage lisible de la dernière mise à jour
   // RU : Читаемый формат последнего обновления
   String get lastUpdateFormatted {
-    if (lastUpdate == null) return 'Неизвестно'; // FR : Inconnu
+    if (lastUpdate == null) return 'Неизвестно';
     final date = lastUpdate!.toDate();
     return '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
   }

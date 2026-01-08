@@ -171,15 +171,15 @@ class HelpPage extends StatelessWidget {
                 ListTile(
                   leading: Icon(Icons.email, color: Colors.blue),
                   title: Text('Email поддержки'),
-                  subtitle: Text('support@laundrylens.com'),
+                  subtitle: Text('laundrylens@gmail.com'),
                   onTap: () {
                     // TODO: Реализовать открытие почтового клиента
                   },
                 ),
                 ListTile(
                   leading: Icon(Icons.phone, color: Colors.green),
-                  title: Text('Телефон'),
-                  subtitle: Text('+33 1 23 45 67 89'),
+                  title: Text('Телефон/WhatsApp'),
+                  subtitle: Text('+7 991 946 71 88'),
                   onTap: () {
                     // TODO: Реализовать звонок
                   },

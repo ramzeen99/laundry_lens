@@ -13,7 +13,7 @@ class PasswordField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: EdgeInsets.only(right: 10.0, left: 10.0),
+      padding: const EdgeInsets.symmetric(horizontal: 10),
       child: TextField(
         obscureText: true, // FR : Masquer le texte
         // RU : Скрывать вводимый текст (пароль)
@@ -47,7 +47,7 @@ class EmailField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: EdgeInsets.only(right: 10.0, left: 10.0),
+      padding: const EdgeInsets.symmetric(horizontal: 10),
       child: TextField(
         keyboardType: TextInputType.emailAddress,
         onChanged: onChanged,
@@ -74,9 +74,9 @@ class NameField extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = TextEditingController();
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 10),
       child: TextField(
-        controller: controller,
+        //controller: controller,
         keyboardType: TextInputType.text,
         autocorrect: false,
         enableSuggestions: false,
@@ -90,4 +90,6 @@ class NameField extends StatelessWidget {
     );
   }
 }
+
+
 

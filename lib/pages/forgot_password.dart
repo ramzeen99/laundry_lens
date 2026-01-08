@@ -91,7 +91,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     try {
       await _auth.sendPasswordResetEmail(email: email.trim());
       _showSuccess('Письмо для сброса пароля отправлено на $email'); // Un email de réinitialisation a été envoyé
-      print('✅ Email envoyé à: $email');
+      //print('✅ Email envoyé à: $email');
 
       setState(() {
         showSpinner = false;
@@ -99,7 +99,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     } on FirebaseAuthException catch (e) {
       String message = _translateFirebaseError(e.code);
       _showError(message);
-      print('🔥 Ошибка Firebase: ${e.code} - ${e.message}');
+      //print('🔥 Ошибка Firebase: ${e.code} - ${e.message}');
 
       setState(() {
         showSpinner = false;
@@ -107,7 +107,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       });
     } catch (e) {
       _showError('Произошла непредвиденная ошибка'); // Une erreur inattendue est survenue
-      print('❌ Ошибка сброса пароля: $e');
+      //print('❌ Ошибка сброса пароля: $e');
 
       setState(() {
         showSpinner = false;
@@ -247,7 +247,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 
                       // FR : BOUTON ENVOYER
                       // RU : КНОПКА ОТПРАВИТЬ
-                      Container(
+                      SizedBox(
                         width: double.infinity,
                         child: ButtonLoginSignup(
                           textButton: 'ОТПРАВИТЬ ССЫЛКУ', // ENVOYER LE LIEN
@@ -277,7 +277,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                       Container(
                         padding: EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
+                          color: Colors.white.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Column(
@@ -308,7 +308,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 
                       // FR : BOUTON RETOUR À LA CONNEXION
                       // RU : КНОПКА ВОЙТИ
-                      Container(
+                      SizedBox(
                         width: double.infinity,
                         child: ButtonLoginSignup(
                           textButton: 'ВОЙТИ', // RETOUR À LA CONNEXION

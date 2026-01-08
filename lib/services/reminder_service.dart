@@ -25,9 +25,9 @@ class ReminderService {
     final reminderTime = _calculateReminderTime(machine);
 
     if (reminderTime != null) {
-      print(
+      /*print(
         '⏰ Напоминание запланировано для ${machine.nom} через ${reminderTime.inMinutes} мин',
-      );
+      );*/
 
       // 🕐 Создать таймер
       // 🕐 Create timer
@@ -87,11 +87,11 @@ class ReminderService {
     if (!preferencesProvider.isNotificationTypeEnabled(
       NotificationType.reminder,
     )) {
-      print('🔕 Напоминания отключены - уведомление не отправлено');
+      //print('🔕 Напоминания отключены - уведомление не отправлено');
       return;
     }
 
-    print('🔔 Активация напоминания для ${machine.nom}');
+    //print('🔔 Активация напоминания для ${machine.nom}');
 
     // 📝 Создать уведомление-напоминание
     // 📝 Create reminder notification
@@ -145,7 +145,7 @@ class ReminderService {
       timer.cancel();
     });
     _activeTimers.clear();
-    print('🗑️ Все напоминания отменены');
+    //print('🗑️ Все напоминания отменены');
   }
 
   // 📊 Статус активных напоминаний

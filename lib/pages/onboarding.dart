@@ -53,16 +53,16 @@ class _OnboardingPageState extends State<OnboardingPage>
     setState(() {
       _isCheckingAuth = true;
     });
-
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
     // Attendre un peu pour l'animation / Подождать немного для анимации
     await Future.delayed(Duration(milliseconds: 1000));
 
     // Vérifier si l'utilisateur est connecté / Проверить, подключен ли пользователь
-    final userProvider = Provider.of<UserProvider>(context, listen: false);
+
     await userProvider.waitForInitialization();
 
     if (userProvider.isLoggedIn && userProvider.currentUser != null) {
-      print('✅ Utilisateur connecté détecté, redirection vers Index');
+      //print('✅ Utilisateur connecté détecté, redirection vers Index');
       if (mounted) {
         Navigator.pushReplacementNamed(context, IndexPage.id);
       }

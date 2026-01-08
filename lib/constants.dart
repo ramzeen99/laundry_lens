@@ -26,6 +26,7 @@ const colorizeColors = [
   Color(0xFF374151),
   Color(0xFFEA580C),
 ];
+const int totalTimeMinutes = 40;
 const kTextFieldDecoration = InputDecoration(
   hintText: 'Введите значение', // Перевод: Enter a value
   hintStyle: TextStyle(color: Colors.white24),

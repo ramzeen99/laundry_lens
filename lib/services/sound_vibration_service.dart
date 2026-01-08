@@ -46,10 +46,10 @@ class SoundVibrationService {
       final soundPath = _notificationSounds[type];
       if (soundPath != null) {
         await _audioPlayer.play(AssetSource(soundPath));
-        print('🔊 Звук воспроизведен: $soundPath / Son joué: $soundPath');
+        //print('🔊 Звук воспроизведен: $soundPath / Son joué: $soundPath');
       }
     } catch (e) {
-      print('❌ Ошибка звука: $e / Erreur son: $e');
+    //  print('❌ Ошибка звука: $e / Erreur son: $e');
       // 🎵 Резервный звук / Son de fallback
       await _playFallbackSound();
     }
@@ -61,7 +61,7 @@ class SoundVibrationService {
       // Воспроизвести системный сигнал / Jouer un bip système
       await _audioPlayer.play(AssetSource('sounds/fallback.mp3'));
     } catch (e) {
-      print('❌ Ошибка резервного звука: $e / Erreur son fallback: $e');
+      //print('❌ Ошибка резервного звука: $e / Erreur son fallback: $e');
     }
   }
 
@@ -70,19 +70,19 @@ class SoundVibrationService {
     try {
       final hasVibrator = await Vibration.hasVibrator();
 
-      if (hasVibrator ?? false) {
+      if (hasVibrator) {
         final pattern = _vibrationPatterns[type];
 
         if (pattern != null) {
           await Vibration.vibrate(pattern: pattern);
-          print('📳 Вибрация воспроизведена: $pattern / Vibration jouée: $pattern');
+          //print('📳 Вибрация воспроизведена: $pattern / Vibration jouée: $pattern');
         } else {
           // 📳 Вибрация по умолчанию / Vibration par défaut
           await Vibration.vibrate(duration: 500);
         }
       }
     } catch (e) {
-      print('❌ Ошибка вибрации: $e / Erreur vibration: $e');
+     // print('❌ Ошибка вибрации: $e / Erreur vibration: $e');
     }
   }
 

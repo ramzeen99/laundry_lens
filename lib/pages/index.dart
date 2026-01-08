@@ -2,12 +2,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:laundry_lens/components/title_app_design.dart';
 import 'notifications_page.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:laundry_lens/pages/onboarding.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import '../providers/machine_provider.dart';
 import '../providers/notification_provider.dart';
 import '../model/model.dart';
-import '../components/machineCard.dart';
+import '../components/machine_card.dart';
 import '../services/firebase_service.dart';
 import 'package:laundry_lens/providers/preferences_provider.dart';
 import 'package:laundry_lens/providers/user_provider.dart';
@@ -27,6 +29,9 @@ class _IndexPageState extends State<IndexPage> {
   Timer? _timer;
   bool _isRefreshing = false;
   bool _isCheckingAuth = true; // ✅ НОВОЕ: Проверка аутентификации
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
+
 
   @override
   void initState() {
@@ -36,7 +41,7 @@ class _IndexPageState extends State<IndexPage> {
 
   // ✅ НОВЫЙ МЕТОД ДЛЯ ПРОВЕРКИ АУТЕНТИФИКАЦИИ
   void _checkAuthAndInitialize() async {
-    print('🔄 IndexPage - Проверка аутентификации...');
+    //print('🔄 IndexPage - Проверка аутентификации...');
 
     // Ожидание инициализации UserProvider
     final userProvider = context.read<UserProvider>();
@@ -44,7 +49,7 @@ class _IndexPageState extends State<IndexPage> {
 
     // Проверка, авторизован ли пользователь
     if (!userProvider.isLoggedIn || userProvider.currentUser == null) {
-      print('❌ Пользователь не авторизован, перенаправление на onboarding');
+      //print('❌ Пользователь не авторизован, перенаправление на onboarding');
       if (mounted) {
         Navigator.pushReplacementNamed(context, OnboardingPage.id);
         return;
@@ -52,7 +57,7 @@ class _IndexPageState extends State<IndexPage> {
     }
 
     // Если авторизован, нормальная инициализация
-    print('✅ Пользователь авторизован: ${userProvider.currentUser!.email}');
+    //print('✅ Пользователь авторизован: ${userProvider.currentUser!.email}');
 
     setState(() {
       _isCheckingAuth = false;
@@ -61,7 +66,7 @@ class _IndexPageState extends State<IndexPage> {
     _startTimer();
     _initializeData();
 
-    print('✅ IndexPage успешно инициализирован');
+    //print('✅ IndexPage успешно инициализирован');
   }
 
   @override
@@ -72,13 +77,16 @@ class _IndexPageState extends State<IndexPage> {
 
   void _initializeData() async {
     try {
-      final provider = context.read<MachineProvider>();
-      await provider.loadMachines();
-      await FirebaseService.diagnoseFirebase();
-      print('✅ Данные успешно инициализированы');
-    } catch (e) {
-      print('❌ Ошибка инициализации данных: $e');
-    }
+      final userProvider = context.read<UserProvider>();
+      final utilisateur = userProvider.currentUser;
+      if (utilisateur == null) return;
+
+      final dormPath = utilisateur.dormPath;
+
+      final machineProvider = context.read<MachineProvider>();
+      await machineProvider.loadMachines(dormPath!);
+
+    } catch (e) {}
   }
 
   void _startTimer() {
@@ -89,11 +97,12 @@ class _IndexPageState extends State<IndexPage> {
           // Просто принудительная перерисовка для обновления таймеров
         });
       }
-      print('⏰ Обновление интерфейса - ${DateTime.now()}');
+      //print('⏰ Обновление интерфейса - ${DateTime.now()}');
     });
   }
 
   Future<void> _refreshData() async {
+    final messenger = ScaffoldMessenger.of(context);
     if (_isRefreshing) return;
 
     setState(() {
@@ -102,9 +111,9 @@ class _IndexPageState extends State<IndexPage> {
 
     try {
       await context.read<MachineProvider>().loadMachines();
+      if (!mounted) return;
       await Future.delayed(const Duration(milliseconds: 500));
-
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(
           content: const Text('✅ Данные обновлены'), // Данные обновлены
           backgroundColor: Colors.green,
@@ -112,7 +121,7 @@ class _IndexPageState extends State<IndexPage> {
         ),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(
           content: Text('❌ Ошибка: ${e.toString()}'), // Ошибка
           backgroundColor: Colors.red,
@@ -129,60 +138,54 @@ class _IndexPageState extends State<IndexPage> {
 
   // МЕТОД ДЛЯ ЗАПУСКА МАШИНЫ
   Future<void> _startMachine(Machine machine) async {
+    final messenger = ScaffoldMessenger.of(context);
     try {
-      final machineProvider = context.read<MachineProvider>();
-      final notificationProvider = context.read<NotificationProvider>();
-      final preferencesProvider = context.read<PreferencesProvider>();
-      final utilisateur = await _getCurrentUser();
+      final userProvider = context.read<UserProvider>();
+      final user = userProvider.currentUser!;
+      final dormPath = user.dormPath;
 
-      print('🚀 Запуск машины: ${machine.nom} пользователем $utilisateur');
-
-      await machineProvider.demarrerMachine(
+      await context.read<MachineProvider>().demarrerMachine(
         machineId: machine.id,
-        utilisateur: utilisateur,
-        notificationProvider: notificationProvider,
-        preferencesProvider: preferencesProvider,
+        dormPath: dormPath,
+        utilisateur: user.email,
+        notificationProvider: context.read<NotificationProvider>(),
+        preferencesProvider: context.read<PreferencesProvider>(), userProvider: null,
       );
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('✅ ${machine.nom} запущена - 5 минут'), // Машина запущена
-          backgroundColor: Colors.green,
-        ),
+      messenger.showSnackBar(
+        SnackBar(content: Text('✅ ${machine.nom} démarrée'), backgroundColor: Colors.green),
       );
     } catch (e) {
-      print('❌ Ошибка запуска машины: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('❌ Ошибка: ${e.toString()}'), // Ошибка
-          backgroundColor: Colors.red,
-        ),
+      messenger.showSnackBar(
+        SnackBar(content: Text('❌ Erreur: $e'), backgroundColor: Colors.red),
       );
     }
   }
 
+
   // МЕТОД ДЛЯ ОСВОБОЖДЕНИЯ МАШИНЫ
   Future<void> _releaseMachine(Machine machine) async {
+    final messenger = ScaffoldMessenger.of(context);
     try {
       final machineProvider = context.read<MachineProvider>();
       final notificationProvider = context.read<NotificationProvider>();
 
-      print('🔄 Освобождение машины: ${machine.nom}');
+      //print('🔄 Освобождение машины: ${machine.nom}');
 
       await machineProvider.libererMachine(
         machineId: machine.id,
         notificationProvider: notificationProvider,
       );
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(
           content: Text('✅ ${machine.nom} освобождена'), // Машина освобождена
           backgroundColor: Colors.orange,
         ),
       );
     } catch (e) {
-      print('❌ Ошибка освобождения машины: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
+      //print('❌ Ошибка освобождения машины: $e');
+      messenger.showSnackBar(
         SnackBar(
           content: Text('❌ Ошибка: ${e.toString()}'), // Ошибка
           backgroundColor: Colors.red,
@@ -192,7 +195,7 @@ class _IndexPageState extends State<IndexPage> {
   }
 
   void _handleMachineAction(Machine machine) {
-    print('🎯 Действие с машиной: ${machine.nom} - Статус: ${machine.statut}');
+    //print('🎯 Действие с машиной: ${machine.nom} - Статус: ${machine.statut}');
 
     switch (machine.statut) {
       case MachineStatus.libre:
@@ -213,7 +216,7 @@ class _IndexPageState extends State<IndexPage> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Запустить машину'), // Запустить машину
-          content: Text('Запустить ${machine.nom}? (5 минут)'), // Запустить машину? (5 минут)
+          content: Text('Запустить ${machine.nom}? (40 минут)'), // Запустить машину? (5 минут)
           actions: [
             TextButton(
               child: const Text('Отмена'), // Отмена
@@ -266,7 +269,7 @@ class _IndexPageState extends State<IndexPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('${machine.nom}'),
+          title: Text(machine.nom),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -319,7 +322,7 @@ class _IndexPageState extends State<IndexPage> {
     final user = userProvider.currentUser;
 
     if (user != null) {
-      return user.email ?? 'Неизвестный пользователь'; // Неизвестный пользователь
+      return user.email; // Неизвестный пользователь
     }
 
     return 'Тестовый пользователь'; // Тестовый пользователь
@@ -360,7 +363,7 @@ class _IndexPageState extends State<IndexPage> {
   void _performLogout() {
     final userProvider = context.read<UserProvider>();
     userProvider.signOut();
-    print('Пользователь вышел из системы'); // Пользователь вышел из системы
+    //print('Пользователь вышел из системы'); // Пользователь вышел из системы
   }
 
   @override
@@ -497,16 +500,16 @@ class _IndexPageState extends State<IndexPage> {
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       accountEmail: user != null
-                          ? Text(user.email ?? 'Email недоступен') // Email недоступен
+                          ? Text(user.email) // Email недоступен
                           : const Text('Не подключен'), // Не подключен
                       currentAccountPicture: CircleAvatar(
                         backgroundImage: hasUserPhoto
                             ? NetworkImage(user.photoURL!)
                             : null,
+                        backgroundColor: Colors.blueGrey[300],
                         child: hasUserPhoto
                             ? null
                             : const Icon(Icons.person, color: Colors.white),
-                        backgroundColor: Colors.blueGrey[300],
                       ),
                       decoration: const BoxDecoration(color: Color(0xFF459380)),
                     );
@@ -540,19 +543,38 @@ class _IndexPageState extends State<IndexPage> {
             decoration: BoxDecoration(
               border: Border(top: BorderSide(color: Colors.grey.shade300)),
             ),
-            child: ListTile(
-              leading: const Icon(Icons.logout, color: Colors.red),
-              title: const Text(
-                'Выход', // Выход
-                style: TextStyle(
-                  color: Colors.red,
-                  fontWeight: FontWeight.w500,
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.logout, color: Colors.red),
+                  title: const Text(
+                    'Выход', // Выход
+                    style: TextStyle(
+                      color: Colors.red,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showLogoutDialog(context);
+                  },
                 ),
-              ),
-              onTap: () {
-                Navigator.pop(context);
-                _showLogoutDialog(context);
-              },
+                ListTile(
+                  leading: const Icon(Icons.delete_forever, color: Colors.red),
+                  title: const Text(
+                    'Удалить аккаунт', // Supprimer le compte
+                    style: TextStyle(
+                      color: Colors.red,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context); // Fermer le drawer
+                    _showDeleteAccountDialog(context);
+                  },
+                ),
+
+              ],
             ),
           ),
         ],
@@ -665,7 +687,7 @@ class _IndexPageState extends State<IndexPage> {
             Container(
               padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.2),
+                color: Colors.orange.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Row(
@@ -769,13 +791,13 @@ class _IndexPageState extends State<IndexPage> {
           crossAxisCount: 2,
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
-          childAspectRatio: 0.5,
+          childAspectRatio: 0.4,
         ),
         itemCount: machines.length,
         itemBuilder: (context, index) {
           final machine = machines[index];
           final remainingTime = machineProvider.getRemainingTime(machine.id);
-          final hasActiveTimer = machineProvider.hasActiveTimer(machine.id);
+      //    final hasActiveTimer = machineProvider.hasActiveTimer(machine.id);
 
           // ✅ СОЗДАТЬ КОПИЮ МАШИНЫ С РЕАЛЬНЫМ ВРЕМЕНЕМ
           final machineWithRealTime = Machine(
@@ -796,4 +818,94 @@ class _IndexPageState extends State<IndexPage> {
       ),
     );
   }
+}
+// 1️⃣ Fonction pour supprimer le compte Firebase et les données Firestore
+Future<void> deleteAccount(BuildContext context) async {
+  final messenger = ScaffoldMessenger.of(context);
+  final navigator = Navigator.of(context);
+  try {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Пользователь не найден'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    String uid = user.uid;
+
+    // Supprimer les données Firestore
+    await FirebaseFirestore.instance.collection('users').doc(uid).delete();
+
+    // Supprimer le compte Firebase Authentication
+    await user.delete();
+
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Text('✅ Аккаунт успешно удален'),
+        backgroundColor: Colors.green,
+      ),
+    );
+
+    // Rediriger vers OnboardingPage
+    navigator.pushReplacementNamed(OnboardingPage.id);
+  } on FirebaseAuthException catch (e) {
+    if (e.code == 'requires-recent-login') {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text(
+              '⚠ Для удаления аккаунта необходимо заново войти в систему'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      // Ici, tu peux demander la re-authentification de l’utilisateur
+    } else {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Ошибка Firebase: ${e.message}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  } catch (e) {
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text('Ошибка при удалении аккаунта: $e'),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+}
+
+// 2️⃣ Dialog pour confirmer la suppression
+void _showDeleteAccountDialog(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: const Text('Подтвердите удаление'), // Confirmer la suppression
+        content: const Text(
+            'Вы уверены, что хотите удалить свой аккаунт и все данные? Это действие нельзя отменить.'),
+        actions: [
+          TextButton(
+            child: const Text('Отмена'),
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+          ),
+          TextButton(
+            child: const Text('Удалить', style: TextStyle(color: Colors.red)),
+            onPressed: () async {
+              Navigator.of(context).pop();
+              await deleteAccount(context);
+            },
+          ),
+        ],
+      );
+    },
+  );
 }

@@ -45,7 +45,13 @@ class _LoginState extends State<Login> {
       }
     });
   }
+  void _onLoginSuccess() {
+    final navigator = Navigator.of(context);
 
+    saveFcmToken(); // fire-and-forget
+
+    navigator.pushNamed(IndexPage.id);
+  }
   // Метод для перевода ошибок Firebase / Méthode pour traduire les erreurs Firebase
   String _translateFirebaseError(String errorCode) {
     return firebaseErrorMessages[errorCode] ??
@@ -166,7 +172,7 @@ class _LoginState extends State<Login> {
                       Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Container(
+                          SizedBox(
                             width: double.infinity,
                             child: ButtonLoginSignup(
                               textButton: 'Войти', // Войти = Se connecter
@@ -188,16 +194,13 @@ class _LoginState extends State<Login> {
                                 });
 
                                 try {
-                                  final user = await _auth
+                                 await _auth
                                       .signInWithEmailAndPassword(
                                     email: email.trim(),
                                     password: password,
                                   );
+                                  _onLoginSuccess();
 
-                                  if (user != null) {
-                                    saveFcmToken();
-                                    Navigator.pushNamed(context, IndexPage.id);
-                                  }
 
                                   setState(() {
                                     showSpinner = false;
@@ -208,9 +211,9 @@ class _LoginState extends State<Login> {
                                     e.code,
                                   );
                                   _showError(message);
-                                  print(
+                                  /*print(
                                     '🔥 Ошибка Firebase: ${e.code} - ${e.message}', // Ошибка Firebase = Erreur Firebase
-                                  );
+                                  );*/
 
                                   setState(() {
                                     showSpinner = false;
@@ -220,7 +223,7 @@ class _LoginState extends State<Login> {
                                   _showError(
                                     'Произошла непредвиденная ошибка', // Произошла непредвиденная ошибка = Une erreur inattendue est survenue
                                   );
-                                  print('❌ Общая ошибка: $e'); // Общая ошибка = Erreur générale
+                                  //print('❌ Общая ошибка: $e'); // Общая ошибка = Erreur générale
 
                                   setState(() {
                                     showSpinner = false;
