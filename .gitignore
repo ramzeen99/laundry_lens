@@ -1,0 +1,21 @@
+# Compiled JavaScript files
+lib/**/*.js
+lib/**/*.js.map
+
+# TypeScript v1 declaration files
+typings/
+
+# Node.js dependency directory
+node_modules/
+*.local
+
+# Flutter / Dart
+.build/
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+.idea/
+android/.gradle/
+ios/Pods/
+build/
