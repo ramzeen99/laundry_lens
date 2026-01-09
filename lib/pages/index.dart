@@ -1,21 +1,21 @@
 import 'dart:async';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:laundry_lens/components/title_app_design.dart';
-import 'notifications_page.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:laundry_lens/pages/help_page.dart';
 import 'package:laundry_lens/pages/onboarding.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:provider/provider.dart';
-import '../providers/machine_provider.dart';
-import '../providers/notification_provider.dart';
-import '../model/model.dart';
-import '../components/machine_card.dart';
-import '../services/firebase_service.dart';
 import 'package:laundry_lens/providers/preferences_provider.dart';
 import 'package:laundry_lens/providers/user_provider.dart';
+import 'package:provider/provider.dart';
+
+import '../components/machine_card.dart';
+import '../model/model.dart';
+import '../providers/machine_provider.dart';
+import '../providers/notification_provider.dart';
+import 'notifications_page.dart';
 import 'profil_page.dart';
-import 'package:laundry_lens/pages/help_page.dart';
-//import 'package:laundry_lens/services/background_notification_service.dart';
 
 class IndexPage extends StatefulWidget {
   static const String id = 'Index';
@@ -28,10 +28,7 @@ class IndexPage extends StatefulWidget {
 class _IndexPageState extends State<IndexPage> {
   Timer? _timer;
   bool _isRefreshing = false;
-  bool _isCheckingAuth = true; // ✅ НОВОЕ: Проверка аутентификации
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
-
+  bool _isCheckingAuth = true;
 
   @override
   void initState() {
@@ -39,25 +36,14 @@ class _IndexPageState extends State<IndexPage> {
     _checkAuthAndInitialize();
   }
 
-  // ✅ НОВЫЙ МЕТОД ДЛЯ ПРОВЕРКИ АУТЕНТИФИКАЦИИ
   void _checkAuthAndInitialize() async {
-    //print('🔄 IndexPage - Проверка аутентификации...');
-
-    // Ожидание инициализации UserProvider
     final userProvider = context.read<UserProvider>();
-    //await userProvider.waitForInitialization();
-
-    // Проверка, авторизован ли пользователь
     if (!userProvider.isLoggedIn || userProvider.currentUser == null) {
-      //print('❌ Пользователь не авторизован, перенаправление на onboarding');
       if (mounted) {
         Navigator.pushReplacementNamed(context, OnboardingPage.id);
         return;
       }
     }
-
-    // Если авторизован, нормальная инициализация
-    //print('✅ Пользователь авторизован: ${userProvider.currentUser!.email}');
 
     setState(() {
       _isCheckingAuth = false;
@@ -65,8 +51,6 @@ class _IndexPageState extends State<IndexPage> {
 
     _startTimer();
     _initializeData();
-
-    //print('✅ IndexPage успешно инициализирован');
   }
 
   @override
@@ -85,20 +69,14 @@ class _IndexPageState extends State<IndexPage> {
 
       final machineProvider = context.read<MachineProvider>();
       await machineProvider.loadMachines(dormPath!);
-
-    } catch (e) {}
+    } catch (e, stack) {
+      debugPrint('Erreur lors de l’initialisation des données: $e');
+      debugPrintStack(stackTrace: stack);
+    }
   }
 
   void _startTimer() {
-    _timer = Timer.periodic(const Duration(seconds: 10), (timer) {
-      // ✅ ПРИНУДИТЕЛЬНОЕ ОБНОВЛЕНИЕ ДЛЯ ОТОБРАЖЕНИЯ ТАЙМЕРОВ В РЕАЛЬНОМ ВРЕМЕНИ
-      if (mounted) {
-        setState(() {
-          // Просто принудительная перерисовка для обновления таймеров
-        });
-      }
-      //print('⏰ Обновление интерфейса - ${DateTime.now()}');
-    });
+    _timer = Timer.periodic(const Duration(seconds: 10), (timer) {});
   }
 
   Future<void> _refreshData() async {
@@ -110,22 +88,28 @@ class _IndexPageState extends State<IndexPage> {
     });
 
     try {
-      await context.read<MachineProvider>().loadMachines();
+      final userProvider = context.read<UserProvider>();
+      final user = userProvider.currentUser;
+
+      if (user == null || user.dormPath == null) {
+        throw Exception('DormPath introuvable');
+      }
+
+      await context.read<MachineProvider>().loadMachines(user.dormPath!);
+
       if (!mounted) return;
+
       await Future.delayed(const Duration(milliseconds: 500));
       messenger.showSnackBar(
-        SnackBar(
-          content: const Text('✅ Данные обновлены'), // Данные обновлены
+        const SnackBar(
+          content: Text('✅ Данные обновлены'),
           backgroundColor: Colors.green,
-          duration: const Duration(seconds: 2),
+          duration: Duration(seconds: 2),
         ),
       );
     } catch (e) {
       messenger.showSnackBar(
-        SnackBar(
-          content: Text('❌ Ошибка: ${e.toString()}'), // Ошибка
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text('❌ Ошибка: $e'), backgroundColor: Colors.red),
       );
     } finally {
       if (mounted) {
@@ -136,24 +120,24 @@ class _IndexPageState extends State<IndexPage> {
     }
   }
 
-  // МЕТОД ДЛЯ ЗАПУСКА МАШИНЫ
   Future<void> _startMachine(Machine machine) async {
     final messenger = ScaffoldMessenger.of(context);
+
     try {
       final userProvider = context.read<UserProvider>();
-      final user = userProvider.currentUser!;
-      final dormPath = user.dormPath;
 
       await context.read<MachineProvider>().demarrerMachine(
         machineId: machine.id,
-        dormPath: dormPath,
-        utilisateur: user.email,
+        userProvider: userProvider,
         notificationProvider: context.read<NotificationProvider>(),
-        preferencesProvider: context.read<PreferencesProvider>(), userProvider: null,
+        preferencesProvider: context.read<PreferencesProvider>(),
       );
 
       messenger.showSnackBar(
-        SnackBar(content: Text('✅ ${machine.nom} démarrée'), backgroundColor: Colors.green),
+        SnackBar(
+          content: Text('✅ ${machine.nom} démarrée'),
+          backgroundColor: Colors.green,
+        ),
       );
     } catch (e) {
       messenger.showSnackBar(
@@ -162,32 +146,30 @@ class _IndexPageState extends State<IndexPage> {
     }
   }
 
-
-  // МЕТОД ДЛЯ ОСВОБОЖДЕНИЯ МАШИНЫ
   Future<void> _releaseMachine(Machine machine) async {
     final messenger = ScaffoldMessenger.of(context);
+
     try {
       final machineProvider = context.read<MachineProvider>();
       final notificationProvider = context.read<NotificationProvider>();
-
-      //print('🔄 Освобождение машины: ${machine.nom}');
+      final userProvider = context.read<UserProvider>();
 
       await machineProvider.libererMachine(
         machineId: machine.id,
+        userProvider: userProvider,
         notificationProvider: notificationProvider,
       );
 
       messenger.showSnackBar(
         SnackBar(
-          content: Text('✅ ${machine.nom} освобождена'), // Машина освобождена
+          content: Text('✅ ${machine.nom} освобождена'),
           backgroundColor: Colors.orange,
         ),
       );
     } catch (e) {
-      //print('❌ Ошибка освобождения машины: $e');
       messenger.showSnackBar(
         SnackBar(
-          content: Text('❌ Ошибка: ${e.toString()}'), // Ошибка
+          content: Text('❌ Ошибка: ${e.toString()}'),
           backgroundColor: Colors.red,
         ),
       );
@@ -195,8 +177,6 @@ class _IndexPageState extends State<IndexPage> {
   }
 
   void _handleMachineAction(Machine machine) {
-    //print('🎯 Действие с машиной: ${machine.nom} - Статус: ${machine.statut}');
-
     switch (machine.statut) {
       case MachineStatus.libre:
         _showStartDialog(machine);
@@ -215,11 +195,11 @@ class _IndexPageState extends State<IndexPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Запустить машину'), // Запустить машину
-          content: Text('Запустить ${machine.nom}? (40 минут)'), // Запустить машину? (5 минут)
+          title: const Text('Запустить машину'),
+          content: Text('Запустить ${machine.nom}? (40 минут)'),
           actions: [
             TextButton(
-              child: const Text('Отмена'), // Отмена
+              child: const Text('Отмена'),
               onPressed: () => Navigator.of(context).pop(),
             ),
             TextButton(
@@ -240,15 +220,15 @@ class _IndexPageState extends State<IndexPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Освободить машину'), // Освободить машину
-          content: Text('Освободить ${machine.nom}?'), // Освободить машину?
+          title: const Text('Освободить машину'),
+          content: Text('Освободить ${machine.nom}?'),
           actions: [
             TextButton(
-              child: const Text('Отмена'), // Отмена
+              child: const Text('Отмена'),
               onPressed: () => Navigator.of(context).pop(),
             ),
             TextButton(
-              child: const Text('Освободить'), // Освободить
+              child: const Text('Освободить'),
               onPressed: () async {
                 Navigator.of(context).pop();
                 await _releaseMachine(machine);
@@ -262,8 +242,20 @@ class _IndexPageState extends State<IndexPage> {
 
   void _showMachineInfo(Machine machine) {
     final machineProvider = context.read<MachineProvider>();
-    final remainingTime = machineProvider.getRemainingTime(machine.id);
-    final hasActiveTimer = machineProvider.hasActiveTimer(machine.id);
+    final userProvider = context.read<UserProvider>();
+
+    final dormPath = userProvider.currentUser?.dormPath;
+    if (dormPath == null) return;
+
+    final remainingTime = machineProvider.getRemainingTime(
+      machineId: machine.id,
+      dormPath: dormPath,
+    );
+
+    final hasActiveTimer = machineProvider.hasActiveTimer(
+      machineId: machine.id,
+      dormPath: dormPath,
+    );
 
     showDialog(
       context: context,
@@ -275,30 +267,32 @@ class _IndexPageState extends State<IndexPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Статус: Занята', // Статус: Занята
+                'Статус: Занята',
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 10),
               if (remainingTime != null)
                 Text(
-                  'Осталось времени: $remainingTime минут', // Осталось времени
+                  'Осталось времени: $remainingTime минут',
                   style: TextStyle(fontSize: 16, color: Colors.green),
                 ),
               if (remainingTime == null && hasActiveTimer)
                 Text(
-                  'Таймер активен, но время недоступно', // Таймер активен, но время недоступно
+                  'Таймер активен, но время недоступно',
                   style: TextStyle(fontSize: 14, color: Colors.orange),
                 ),
               if (!hasActiveTimer)
                 Text(
-                  'Нет активного таймера', // Нет активного таймера
+                  'Нет активного таймера',
                   style: TextStyle(fontSize: 14, color: Colors.red),
                 ),
               SizedBox(height: 10),
-              Text('Пользователь: ${machine.utilisateurActuel ?? 'Неизвестно'}'), // Пользователь
+              Text(
+                'Пользователь: ${machine.utilisateurActuel ?? 'Неизвестно'}',
+              ), // Пользователь
               SizedBox(height: 10),
               Text(
-                '⏰ Таймер независимый и постоянный', // Таймер независимый и постоянный
+                '⏰ Таймер независимый и постоянный',
                 style: TextStyle(
                   fontStyle: FontStyle.italic,
                   color: Colors.green,
@@ -308,24 +302,13 @@ class _IndexPageState extends State<IndexPage> {
           ),
           actions: [
             TextButton(
-              child: const Text('Закрыть'), // Закрыть
+              child: const Text('Закрыть'),
               onPressed: () => Navigator.of(context).pop(),
             ),
           ],
         );
       },
     );
-  }
-
-  Future<String> _getCurrentUser() async {
-    final userProvider = context.read<UserProvider>();
-    final user = userProvider.currentUser;
-
-    if (user != null) {
-      return user.email; // Неизвестный пользователь
-    }
-
-    return 'Тестовый пользователь'; // Тестовый пользователь
   }
 
   void _showNotifications() {
@@ -337,18 +320,15 @@ class _IndexPageState extends State<IndexPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Выход из системы'), // Выход из системы
-          content: const Text('Вы уверены, что хотите выйти?'), // Вы уверены, что хотите выйти?
+          title: const Text('Выход из системы'),
+          content: const Text('Вы уверены, что хотите выйти?'),
           actions: [
             TextButton(
-              child: const Text('Отмена'), // Отмена
+              child: const Text('Отмена'),
               onPressed: () => Navigator.of(context).pop(),
             ),
             TextButton(
-              child: const Text(
-                'Выйти', // Выйти
-                style: TextStyle(color: Colors.red),
-              ),
+              child: const Text('Выйти', style: TextStyle(color: Colors.red)),
               onPressed: () {
                 _performLogout();
                 Navigator.pushNamed(context, OnboardingPage.id);
@@ -363,12 +343,10 @@ class _IndexPageState extends State<IndexPage> {
   void _performLogout() {
     final userProvider = context.read<UserProvider>();
     userProvider.signOut();
-    //print('Пользователь вышел из системы'); // Пользователь вышел из системы
   }
 
   @override
   Widget build(BuildContext context) {
-    // ✅ ПОКАЗЫВАТЬ ЗАГРУЗКУ, ЕСЛИ ПРОВЕРЯЕТСЯ АУТЕНТИФИКАЦИЯ
     if (_isCheckingAuth) {
       return Scaffold(
         backgroundColor: Color(0xFF459380),
@@ -381,7 +359,7 @@ class _IndexPageState extends State<IndexPage> {
               ),
               SizedBox(height: 20),
               Text(
-                'Проверка подключения...', // Проверка подключения...
+                'Проверка подключения...',
                 style: TextStyle(color: Colors.white, fontSize: 16),
               ),
             ],
@@ -399,31 +377,31 @@ class _IndexPageState extends State<IndexPage> {
             onPressed: () => Scaffold.of(context).openDrawer(),
           ),
         ),
-        title: const TitleAppDesign(textTitle: 'LAUNDRY LENS'), // Название остается без изменений
+        title: const TitleAppDesign(textTitle: 'LAUNDRY LENS'),
         actions: [
           _isRefreshing
               ? const Padding(
-            padding: EdgeInsets.all(12.0),
-            child: SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-              ),
-            ),
-          )
+                  padding: EdgeInsets.all(12.0),
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  ),
+                )
               : IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _refreshData,
-            tooltip: 'Обновить', // Обновить
-          ),
+                  icon: const Icon(Icons.refresh),
+                  onPressed: _refreshData,
+                  tooltip: 'Обновить',
+                ),
           Stack(
             children: [
               IconButton(
                 icon: const Icon(Icons.notifications),
                 onPressed: _showNotifications,
-                tooltip: 'Уведомления', // Уведомления
+                tooltip: 'Уведомления',
               ),
               Consumer<NotificationProvider>(
                 builder: (context, notificationProvider, child) {
@@ -496,12 +474,12 @@ class _IndexPageState extends State<IndexPage> {
 
                     return UserAccountsDrawerHeader(
                       accountName: Text(
-                        user?.displayName ?? user?.email ?? 'Пользователь', // Пользователь
+                        user?.displayName ?? user?.email ?? 'Пользователь',
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       accountEmail: user != null
-                          ? Text(user.email) // Email недоступен
-                          : const Text('Не подключен'), // Не подключен
+                          ? Text(user.email)
+                          : const Text('Не подключен'),
                       currentAccountPicture: CircleAvatar(
                         backgroundImage: hasUserPhoto
                             ? NetworkImage(user.photoURL!)
@@ -517,22 +495,18 @@ class _IndexPageState extends State<IndexPage> {
                 ),
                 ListTile(
                   leading: const Icon(Icons.person),
-                  title: const Text('Мой профиль'), // Мой профиль
+                  title: const Text('Мой профиль'),
                   onTap: () {
                     Navigator.pop(context);
                     Navigator.pushNamed(context, ProfilePage.id);
                   },
                 ),
-                // ИЗМЕНИТЬ LISTTILE "ПОМОЩЬ" В DRAWER
                 ListTile(
                   leading: const Icon(Icons.help),
-                  title: const Text('Помощь'), // Помощь
+                  title: const Text('Помощь'),
                   onTap: () {
-                    Navigator.pop(context); // Закрыть drawer
-                    Navigator.pushNamed(
-                      context,
-                      HelpPage.id,
-                    ); // Перейти на страницу помощи
+                    Navigator.pop(context);
+                    Navigator.pushNamed(context, HelpPage.id);
                   },
                 ),
               ],
@@ -548,7 +522,7 @@ class _IndexPageState extends State<IndexPage> {
                 ListTile(
                   leading: const Icon(Icons.logout, color: Colors.red),
                   title: const Text(
-                    'Выход', // Выход
+                    'Выход',
                     style: TextStyle(
                       color: Colors.red,
                       fontWeight: FontWeight.w500,
@@ -562,18 +536,17 @@ class _IndexPageState extends State<IndexPage> {
                 ListTile(
                   leading: const Icon(Icons.delete_forever, color: Colors.red),
                   title: const Text(
-                    'Удалить аккаунт', // Supprimer le compte
+                    'Удалить аккаунт',
                     style: TextStyle(
                       color: Colors.red,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                   onTap: () {
-                    Navigator.pop(context); // Fermer le drawer
+                    Navigator.pop(context);
                     _showDeleteAccountDialog(context);
                   },
                 ),
-
               ],
             ),
           ),
@@ -633,9 +606,9 @@ class _IndexPageState extends State<IndexPage> {
   }
 
   Widget _buildStatsHeader(
-      List<Machine> machines,
-      MachineProvider machineProvider,
-      ) {
+    List<Machine> machines,
+    MachineProvider machineProvider,
+  ) {
     final machinesLibres = machines
         .where((m) => m.statut == MachineStatus.libre)
         .length;
@@ -657,24 +630,24 @@ class _IndexPageState extends State<IndexPage> {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _buildStatItem(
-                'Всего', // Всего
+                'Всего',
                 machines.length.toString(),
                 Icons.local_laundry_service,
               ),
               _buildStatItem(
-                'Свободны', // Свободны
+                'Свободны',
                 machinesLibres.toString(),
                 Icons.check_circle,
                 color: Colors.green,
               ),
               _buildStatItem(
-                'Заняты', // Заняты
+                'Заняты',
                 machinesOccupees.toString(),
                 Icons.timer,
                 color: Colors.orange,
               ),
               _buildStatItem(
-                'Завершены', // Завершены
+                'Завершены',
                 machinesTerminees.toString(),
                 Icons.done_all,
                 color: Colors.blue,
@@ -682,7 +655,6 @@ class _IndexPageState extends State<IndexPage> {
             ],
           ),
           SizedBox(height: 10),
-          // ✅ ОТОБРАЖЕНИЕ АКТИВНЫХ ТАЙМЕРОВ
           if (activeTimers > 0)
             Container(
               padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -696,7 +668,7 @@ class _IndexPageState extends State<IndexPage> {
                   Icon(Icons.access_time, color: Colors.orange, size: 16),
                   SizedBox(width: 8),
                   Text(
-                    '$activeTimers активный(е) таймер(ы)', // активный(е) таймер(ы)
+                    '$activeTimers активный(е) таймер(ы)',
                     style: TextStyle(
                       color: Colors.orange,
                       fontWeight: FontWeight.bold,
@@ -712,11 +684,11 @@ class _IndexPageState extends State<IndexPage> {
   }
 
   Widget _buildStatItem(
-      String title,
-      String value,
-      IconData icon, {
-        Color color = Colors.blue,
-      }) {
+    String title,
+    String value,
+    IconData icon, {
+    Color color = Colors.blue,
+  }) {
     return Column(
       children: [
         Icon(icon, color: color, size: 30),
@@ -747,7 +719,7 @@ class _IndexPageState extends State<IndexPage> {
           ),
           const SizedBox(height: 20),
           const Text(
-            'Загрузка машин...', // Загрузка машин...
+            'Загрузка машин...',
             style: TextStyle(color: Colors.white, fontSize: 16),
           ),
         ],
@@ -767,13 +739,13 @@ class _IndexPageState extends State<IndexPage> {
           ),
           const SizedBox(height: 16),
           const Text(
-            'Нет доступных машин', // Нет доступных машин
+            'Нет доступных машин',
             style: TextStyle(color: Colors.white, fontSize: 18),
           ),
           const SizedBox(height: 8),
           ElevatedButton(
             onPressed: _refreshData,
-            child: const Text('Попробовать снова'), // Попробовать снова
+            child: const Text('Попробовать снова'),
           ),
         ],
       ),
@@ -781,9 +753,9 @@ class _IndexPageState extends State<IndexPage> {
   }
 
   Widget _buildMachinesGrid(
-      List<Machine> machines,
-      MachineProvider machineProvider,
-      ) {
+    List<Machine> machines,
+    MachineProvider machineProvider,
+  ) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: GridView.builder(
@@ -796,22 +768,27 @@ class _IndexPageState extends State<IndexPage> {
         itemCount: machines.length,
         itemBuilder: (context, index) {
           final machine = machines[index];
-          final remainingTime = machineProvider.getRemainingTime(machine.id);
-      //    final hasActiveTimer = machineProvider.hasActiveTimer(machine.id);
+          final userProvider = context.read<UserProvider>();
+          final dormPath = userProvider.currentUser?.dormPath;
 
-          // ✅ СОЗДАТЬ КОПИЮ МАШИНЫ С РЕАЛЬНЫМ ВРЕМЕНЕМ
+          final remainingTime = dormPath == null
+              ? null
+              : machineProvider.getRemainingTime(
+                  machineId: machine.id,
+                  dormPath: dormPath,
+                );
+
           final machineWithRealTime = Machine(
             id: machine.id,
             nom: machine.nom,
             emplacement: machine.emplacement,
             statut: machine.statut,
-            tempsRestant: remainingTime, // ✅ РЕАЛЬНОЕ ВРЕМЯ таймера
+            tempsRestant: remainingTime,
             utilisateurActuel: machine.utilisateurActuel,
           );
 
           return MachineCard(
-            machine:
-            machineWithRealTime, // ✅ ИСПОЛЬЗОВАТЬ МАШИНУ С РЕАЛЬНЫМ ВРЕМЕНЕМ
+            machine: machineWithRealTime,
             onActionPressed: _handleMachineAction,
           );
         },
@@ -819,7 +796,7 @@ class _IndexPageState extends State<IndexPage> {
     );
   }
 }
-// 1️⃣ Fonction pour supprimer le compte Firebase et les données Firestore
+
 Future<void> deleteAccount(BuildContext context) async {
   final messenger = ScaffoldMessenger.of(context);
   final navigator = Navigator.of(context);
@@ -838,10 +815,8 @@ Future<void> deleteAccount(BuildContext context) async {
 
     String uid = user.uid;
 
-    // Supprimer les données Firestore
     await FirebaseFirestore.instance.collection('users').doc(uid).delete();
 
-    // Supprimer le compte Firebase Authentication
     await user.delete();
 
     messenger.showSnackBar(
@@ -851,18 +826,17 @@ Future<void> deleteAccount(BuildContext context) async {
       ),
     );
 
-    // Rediriger vers OnboardingPage
     navigator.pushReplacementNamed(OnboardingPage.id);
   } on FirebaseAuthException catch (e) {
     if (e.code == 'requires-recent-login') {
       messenger.showSnackBar(
         const SnackBar(
           content: Text(
-              '⚠ Для удаления аккаунта необходимо заново войти в систему'),
+            '⚠ Для удаления аккаунта необходимо заново войти в систему',
+          ),
           backgroundColor: Colors.orange,
         ),
       );
-      // Ici, tu peux demander la re-authentification de l’utilisateur
     } else {
       messenger.showSnackBar(
         SnackBar(
@@ -881,15 +855,15 @@ Future<void> deleteAccount(BuildContext context) async {
   }
 }
 
-// 2️⃣ Dialog pour confirmer la suppression
 void _showDeleteAccountDialog(BuildContext context) {
   showDialog(
     context: context,
     builder: (BuildContext context) {
       return AlertDialog(
-        title: const Text('Подтвердите удаление'), // Confirmer la suppression
+        title: const Text('Подтвердите удаление'),
         content: const Text(
-            'Вы уверены, что хотите удалить свой аккаунт и все данные? Это действие нельзя отменить.'),
+          'Вы уверены, что хотите удалить свой аккаунт и все данные? Это действие нельзя отменить.',
+        ),
         actions: [
           TextButton(
             child: const Text('Отмена'),

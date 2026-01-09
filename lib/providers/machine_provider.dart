@@ -1,16 +1,19 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:laundry_lens/model/model.dart';
 import 'package:laundry_lens/providers/notification_provider.dart';
 import 'package:laundry_lens/providers/preferences_provider.dart';
+
 import 'user_provider.dart';
 
 class MachineProvider with ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   List<Machine> _machines = [];
-  final Map<String, MachineTimer> _activeTimers = {}; // clé = dormPath/machineId
+  final Map<String, MachineTimer> _activeTimers =
+      {}; // clé = dormPath/machineId
   bool _isLoading = false;
 
   List<Machine> get machines => _machines;
@@ -23,7 +26,7 @@ class MachineProvider with ChangeNotifier {
   }
 
   /// Chargement des machines depuis Firestore
-  Future<void> loadMachines( String dormPath) async {
+  Future<void> loadMachines(String dormPath) async {
     _isLoading = true;
     notifyListeners();
 
@@ -59,7 +62,8 @@ class MachineProvider with ChangeNotifier {
     required UserProvider userProvider,
     required NotificationProvider notificationProvider,
     required PreferencesProvider preferencesProvider,
-    int totalMinutes = 40, String? dormPath,
+    int totalMinutes = 40,
+    String? dormPath,
   }) async {
     try {
       final currentUser = userProvider.currentUser;
@@ -94,11 +98,11 @@ class MachineProvider with ChangeNotifier {
           .collection('machines')
           .doc(machineId)
           .update({
-        'statut': 'occupe',
-        'utilisateurActuel': currentUser.id,
-        'tempsRestant': totalMinutes,
-        'lastUpdated': FieldValue.serverTimestamp(),
-      });
+            'statut': 'occupe',
+            'utilisateurActuel': currentUser.id,
+            'tempsRestant': totalMinutes,
+            'lastUpdated': FieldValue.serverTimestamp(),
+          });
 
       notifyListeners();
     } catch (e) {
@@ -136,11 +140,11 @@ class MachineProvider with ChangeNotifier {
           .collection('machines')
           .doc(machineId)
           .update({
-        'statut': 'libre',
-        'utilisateurActuel': null,
-        'tempsRestant': null,
-        'lastUpdated': FieldValue.serverTimestamp(),
-      });
+            'statut': 'libre',
+            'utilisateurActuel': null,
+            'tempsRestant': null,
+            'lastUpdated': FieldValue.serverTimestamp(),
+          });
 
       notifyListeners();
     } catch (e) {
@@ -162,6 +166,9 @@ class MachineProvider with ChangeNotifier {
     final timer = _activeTimers[key];
     return timer?.remainingMinutes;
   }
+
+  // Getter public pour obtenir la liste des timers actifs
+  List<MachineTimer> get activeTimers => _activeTimers.values.toList();
 
   /// Timer périodique pour mettre à jour les machines et notifications
   void _startTimerChecker() {
@@ -192,11 +199,11 @@ class MachineProvider with ChangeNotifier {
               .collection('machines')
               .doc(t.machineId)
               .update({
-            'statut': 'libre',
-            'utilisateurActuel': null,
-            'tempsRestant': null,
-            'lastUpdated': FieldValue.serverTimestamp(),
-          });
+                'statut': 'libre',
+                'utilisateurActuel': null,
+                'tempsRestant': null,
+                'lastUpdated': FieldValue.serverTimestamp(),
+              });
 
           // Mettre à jour la machine localement
           final machineIndex = _machines.indexWhere((m) => m.id == t.machineId);
@@ -238,8 +245,6 @@ class MachineTimer {
     this.isFinished = false,
   });
 }
-
-
 
 /*import 'dart:async';
 import 'dart:convert';
