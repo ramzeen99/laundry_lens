@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:laundry_lens/components/role_router.dart';
 import 'package:laundry_lens/components/title_app_design.dart';
 import 'package:laundry_lens/constants.dart';
 import 'package:laundry_lens/components/forms.dart';
 import 'package:laundry_lens/components/button_login_signup.dart';
-import 'package:laundry_lens/pages/index.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:laundry_lens/services/auth_service.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 import 'package:laundry_lens/pages/forgot_password.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -20,23 +21,19 @@ class Login extends StatefulWidget {
 
 class _LoginState extends State<Login> {
   bool showSpinner = false;
-  final _auth = FirebaseAuth.instance;
   late String email;
   late String password;
   String? errorMessage;
   bool showError = false;
 
-  // Controller для управления скроллом / Contrôleur pour gérer le scroll
   final ScrollController _scrollController = ScrollController();
 
-  // Метод для отображения ошибки / Méthode pour afficher l'erreur
   void _showError(String message) {
     setState(() {
       errorMessage = message;
       showError = true;
     });
 
-    // Автоматически скрыть через 5 секунд / Masquer automatiquement après 5 secondes
     Future.delayed(Duration(seconds: 5), () {
       if (mounted) {
         setState(() {
@@ -45,17 +42,10 @@ class _LoginState extends State<Login> {
       }
     });
   }
-  void _onLoginSuccess() {
-    final navigator = Navigator.of(context);
 
-    saveFcmToken(); // fire-and-forget
-
-    navigator.pushNamed(IndexPage.id);
-  }
-  // Метод для перевода ошибок Firebase / Méthode pour traduire les erreurs Firebase
   String _translateFirebaseError(String errorCode) {
     return firebaseErrorMessages[errorCode] ??
-        'Произошла ошибка. Код: $errorCode'; // Произошла ошибка. Код: = Une erreur est survenue. Code:
+        'Произошла ошибка. Код: $errorCode';
   }
 
   @override
@@ -81,10 +71,8 @@ class _LoginState extends State<Login> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      // ГИБКОЕ ПРОСТРАНСТВО В НАЧАЛЕ / ESPACE FLEXIBLE AU DÉBUT
                       Flexible(flex: 1, child: SizedBox(height: 20)),
 
-                      // ЗАГОЛОВКИ / TITRES
                       Column(
                         children: [
                           TitleAppDesign(textTitle: 'ДОБРО ПОЖАЛОВАТЬ'),
@@ -94,7 +82,6 @@ class _LoginState extends State<Login> {
 
                       SizedBox(height: 20.0),
 
-                      // СООБЩЕНИЕ ОБ ОШИБКЕ / MESSAGE D'ERREUR
                       if (showError && errorMessage != null)
                         Padding(
                           padding: EdgeInsets.symmetric(horizontal: 20),
@@ -135,7 +122,6 @@ class _LoginState extends State<Login> {
 
                       SizedBox(height: 20.0),
 
-                      // ФОРМЫ / FORMULAIRES
                       Expanded(
                         flex: 2,
                         child: Column(
@@ -144,7 +130,6 @@ class _LoginState extends State<Login> {
                             EmailField(
                               onChanged: (value) {
                                 email = value;
-                                // Скрыть ошибку, когда пользователь исправляет / Masquer l'erreur quand l'utilisateur corrige
                                 if (showError) {
                                   setState(() {
                                     showError = false;
@@ -156,7 +141,6 @@ class _LoginState extends State<Login> {
                             PasswordField(
                               onChanged: (value) {
                                 password = value;
-                                // Скрыть ошибку, когда пользователь исправляет / Masquer l'erreur quand l'utilisateur corrige
                                 if (showError) {
                                   setState(() {
                                     showError = false;
@@ -168,22 +152,20 @@ class _LoginState extends State<Login> {
                         ),
                       ),
 
-                      // КНОПКА ВХОДА / BOUTON DE CONNEXION
                       Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           SizedBox(
                             width: double.infinity,
                             child: ButtonLoginSignup(
-                              textButton: 'Войти', // Войти = Se connecter
+                              textButton: 'Войти',
                               colorButton: Color(0xFF1E40AF),
                               sizeButton: 40.0,
                               colorText: Colors.white,
                               onPressed: () async {
-                                // Базовая валидация / Validation basique
                                 if (email.isEmpty || password.isEmpty) {
                                   _showError(
-                                    'Пожалуйста, заполните все поля', // Пожалуйста, заполните все поля = Veuillez remplir tous les champs
+                                    'Пожалуйста, заполните все поля',
                                   );
                                   return;
                                 }
@@ -194,37 +176,45 @@ class _LoginState extends State<Login> {
                                 });
 
                                 try {
-                                 await _auth
-                                      .signInWithEmailAndPassword(
-                                    email: email.trim(),
-                                    password: password,
-                                  );
-                                  _onLoginSuccess();
+                                  final authService = AuthService();
+                                  try {
+                                    final userData = await authService.signIn(email, password);
 
+                                    final role = userData['role'];
+
+                                    saveFcmToken();
+
+                                    if (context.mounted) {
+                                      navigateByRole(context, role);
+                                    }
+
+                                    setState(() {
+                                      showSpinner = false;
+                                    });
+                                  } on FirebaseAuthException catch (e) {
+                                    _showError(_translateFirebaseError(e.code));
+                                    setState(() => showSpinner = false);
+                                  } catch (e) {
+                                    _showError(e.toString());
+                                    setState(() => showSpinner = false);
+                                  }
 
                                   setState(() {
                                     showSpinner = false;
                                   });
                                 } on FirebaseAuthException catch (e) {
-                                  // Обработка специфических ошибок Firebase / Gestion des erreurs Firebase spécifiques
                                   String message = _translateFirebaseError(
                                     e.code,
                                   );
                                   _showError(message);
-                                  /*print(
-                                    '🔥 Ошибка Firebase: ${e.code} - ${e.message}', // Ошибка Firebase = Erreur Firebase
-                                  );*/
 
                                   setState(() {
                                     showSpinner = false;
                                   });
                                 } catch (e) {
-                                  // Общие ошибки / Erreurs générales
                                   _showError(
-                                    'Произошла непредвиденная ошибка', // Произошла непредвиденная ошибка = Une erreur inattendue est survenue
+                                    'Произошла непредвиденная ошибка',
                                   );
-                                  //print('❌ Общая ошибка: $e'); // Общая ошибка = Erreur générale
-
                                   setState(() {
                                     showSpinner = false;
                                   });
@@ -244,7 +234,7 @@ class _LoginState extends State<Login> {
                                   );
                                 },
                                 child: Text(
-                                  'Забыли пароль?', // Забыли пароль? = Mot de passe oublié?
+                                  'Забыли пароль?',
                                   style: TextStyle(
                                     fontSize: 16.0,
                                     color: Colors.white70,
@@ -257,7 +247,6 @@ class _LoginState extends State<Login> {
                         ],
                       ),
 
-                      // РЕГИСТРАЦИЯ / INSCRIPTION
                       Expanded(
                         flex: 1,
                         child: Column(
