@@ -4,28 +4,26 @@ class UniversityStatsService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   Future<Map<String, int>> getUniversityStats(String universityId) async {
-    final dormsSnap = await _firestore
-        .collection('dorms')
-        .where('universityId', isEqualTo: universityId)
+    final uniDoc = await _firestore
+        .collection('universities')
+        .doc(universityId)
         .get();
 
-    final machinesSnap = await _firestore
-        .collection('machines')
-        .where('universityId', isEqualTo: universityId)
-        .get();
+    if (!uniDoc.exists) {
+      throw Exception('Université introuvable');
+    }
 
-    final activeMachines = machinesSnap.docs
-        .where((m) => m['status'] == 'active')
-        .length;
+    final data = uniDoc.data()!;
 
-    final inactiveMachines = machinesSnap.docs
-        .where((m) => m['status'] != 'active')
-        .length;
+    final totalDorms = int.tryParse(data['totalDorms'].toString()) ?? 0;
+    final activeMachines = int.tryParse(data['activeMachines'].toString()) ?? 0;
+    final inactiveMachines =
+        int.tryParse(data['inactiveMachines'].toString()) ?? 0;
 
     return {
-      'dorms': dormsSnap.size,
-      'machines': machinesSnap.size,
-      'activeMachines': activeMachines,
+      'dorms': totalDorms,
+      'machines': activeMachines,
+      'activeMachines': inactiveMachines,
       'inactiveMachines': inactiveMachines,
     };
   }
