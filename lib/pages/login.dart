@@ -179,15 +179,16 @@ class _LoginState extends State<Login> {
                                   final authService = AuthService();
                                   try {
                                     final userData = await authService.signIn(email, password);
-
                                     final role = userData['role'];
-
                                     saveFcmToken();
-
                                     if (context.mounted) {
-                                      navigateByRole(context, role);
+                                      navigateByRole(
+                                        context,
+                                        role,
+                                        universityId: userData['universityId'],
+                                        dormId: userData['dormId'],
+                                      );
                                     }
-
                                     setState(() {
                                       showSpinner = false;
                                     });
@@ -258,7 +259,7 @@ class _LoginState extends State<Login> {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Text(
-                                    'Нет аккаунта?', // Нет аккаунта? = Pas de compte?
+                                    'Нет аккаунта?',
                                     style: TextStyle(color: Colors.white),
                                   ),
                                   TextButton(
@@ -266,7 +267,7 @@ class _LoginState extends State<Login> {
                                       Navigator.pop(context);
                                     },
                                     child: Text(
-                                      ' Регистрация', // Регистрация = S'inscrire
+                                      ' Регистрация',
                                       style: sousTitreStyle.copyWith(
                                         color: Colors.lightBlueAccent,
                                         decoration: TextDecoration.underline,

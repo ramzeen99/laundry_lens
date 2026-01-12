@@ -5,8 +5,10 @@ import 'package:laundry_lens/pages/university_dashboard.dart';
 
 void navigateByRole(
     BuildContext context,
-    String role,
-    ) {
+    String role, {
+      String? universityId,
+      String? dormId,
+    }) {
   switch (role) {
     case 'super_admin':
       Navigator.pushReplacement(
@@ -18,19 +20,31 @@ void navigateByRole(
       break;
 
     case 'university_admin':
+      if (universityId == null) {
+        throw Exception('universityId manquant pour university_admin');
+      }
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (_) => const UniversityDashboard(),
+          builder: (_) => UniversityDashboard(
+            universityId: universityId,
+          ),
         ),
       );
       break;
 
     case 'dorm_admin':
+      if (dormId == null) {
+        throw Exception('dormId manquant pour dorm_admin');
+      }
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (_) => const DormitoryDashboard(),
+          builder: (_) => DormitoryDashboard(
+            dormId: dormId,
+          ),
         ),
       );
       break;
@@ -39,3 +53,4 @@ void navigateByRole(
       throw Exception('Rôle inconnu : $role');
   }
 }
+

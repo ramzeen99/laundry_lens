@@ -45,6 +45,8 @@ class _IndexPageState extends State<IndexPage> {
       }
     }
 
+    await FirebaseAuth.instance.currentUser!.getIdToken(true);
+
     setState(() {
       _isCheckingAuth = false;
     });
@@ -66,9 +68,13 @@ class _IndexPageState extends State<IndexPage> {
       if (utilisateur == null) return;
 
       final dormPath = utilisateur.dormPath;
+      if (dormPath == null) {
+        debugPrint("⚠️ dormPath est null pour cet utilisateur");
+        return;
+      }
 
       final machineProvider = context.read<MachineProvider>();
-      await machineProvider.loadMachines(dormPath!);
+      await machineProvider.loadMachines(dormPath);
     } catch (e, stack) {
       debugPrint('Erreur lors de l’initialisation des données: $e');
       debugPrintStack(stackTrace: stack);

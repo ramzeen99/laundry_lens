@@ -32,10 +32,10 @@ class AdminStatsService {
     ]);
 
     return {
-      'countries': results[0],
-      'dorms': results[1],
-      'machines': results[2],
-      'users': results[3],
+      'Страны': results[0],
+      'Общежития': results[1],
+      'Машины': results[2],
+      'Пользователи': results[3],
     };
   }
 }
