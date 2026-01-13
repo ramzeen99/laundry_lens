@@ -12,7 +12,12 @@
           "package_name": "com.ramzeen.laundry_lens"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "286262115323-it2lh7kri4058v67asvhq27sqhssfcpb.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyA21e03uIXOkj4oOV0rpIVMFAe4_PhnjfE"
@@ -20,7 +25,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "286262115323-it2lh7kri4058v67asvhq27sqhssfcpb.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

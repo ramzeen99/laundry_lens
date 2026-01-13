@@ -1,15 +1,16 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:laundry_lens/components/button_login_signup.dart';
+import 'package:laundry_lens/components/forms.dart';
 import 'package:laundry_lens/components/role_router.dart';
+import 'package:laundry_lens/components/social_login_button.dart';
 import 'package:laundry_lens/components/title_app_design.dart';
 import 'package:laundry_lens/constants.dart';
-import 'package:laundry_lens/components/forms.dart';
-import 'package:laundry_lens/components/button_login_signup.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:laundry_lens/pages/forgot_password.dart';
 import 'package:laundry_lens/services/auth_service.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
-import 'package:laundry_lens/pages/forgot_password.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Login extends StatefulWidget {
   static const String id = 'Login';
@@ -164,9 +165,7 @@ class _LoginState extends State<Login> {
                               colorText: Colors.white,
                               onPressed: () async {
                                 if (email.isEmpty || password.isEmpty) {
-                                  _showError(
-                                    'Пожалуйста, заполните все поля',
-                                  );
+                                  _showError('Пожалуйста, заполните все поля');
                                   return;
                                 }
 
@@ -178,7 +177,10 @@ class _LoginState extends State<Login> {
                                 try {
                                   final authService = AuthService();
                                   try {
-                                    final userData = await authService.signIn(email, password);
+                                    final userData = await authService.signIn(
+                                      email,
+                                      password,
+                                    );
                                     final role = userData['role'];
                                     saveFcmToken();
                                     if (context.mounted) {
@@ -213,9 +215,7 @@ class _LoginState extends State<Login> {
                                     showSpinner = false;
                                   });
                                 } catch (e) {
-                                  _showError(
-                                    'Произошла непредвиденная ошибка',
-                                  );
+                                  _showError('Произошла непредвиденная ошибка');
                                   setState(() {
                                     showSpinner = false;
                                   });
@@ -223,6 +223,66 @@ class _LoginState extends State<Login> {
                               },
                             ),
                           ),
+                          SizedBox(height: 20),
+
+                          Text(
+                            'Или войти с помощью',
+                            style: TextStyle(color: Colors.white70),
+                          ),
+
+                          SizedBox(height: 15),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              SocialLoginButton(
+                                asset: 'images/google.png',
+                                onTap: () async {
+                                  setState(() => showSpinner = true);
+                                  try {
+                                    final authService = AuthService();
+                                    final userCredential = await authService
+                                        .signInWithGoogle();
+
+                                    final user = userCredential.user;
+                                    if (user != null && context.mounted) {
+                                      final uid = user.uid;
+
+                                      final userDoc = await FirebaseFirestore
+                                          .instance
+                                          .collection('users')
+                                          .doc(uid)
+                                          .get();
+
+                                      if (!userDoc.exists) {
+                                        throw Exception(
+                                          'Utilisateur non trouvé',
+                                        );
+                                      }
+
+                                      final userData = userDoc.data()!;
+                                      final role = userData['role'];
+
+                                      saveFcmToken();
+
+                                      if (context.mounted) {
+                                        navigateByRole(
+                                          context,
+                                          role,
+                                          universityId:
+                                              userData['universityId'],
+                                          dormId: userData['dormId'],
+                                        );
+                                      }
+                                    }
+                                  } catch (e) {
+                                    _showError(e.toString());
+                                  }
+                                  setState(() => showSpinner = false);
+                                },
+                              ),
+                            ],
+                          ),
+
                           SizedBox(height: 8.0),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.end,
