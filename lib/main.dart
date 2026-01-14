@@ -26,7 +26,6 @@ Future<void> firebaseBackgroundHandler(RemoteMessage message) async {
     title: message.notification?.title ?? "Уведомление",
     body: message.notification?.body ?? "",
   );
-  
 }
 
 void main() async {
